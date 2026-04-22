@@ -1,28 +1,29 @@
-# Play - Free Tailwind CSS Template for Startup, Apps and SaaS
+# Prime Advertere
 
-Play is an open-source and free Tailwind CSS template co-created by TailGrids and UIdeck. This template specially crafted for SaaS, startup, business and software website.
-Play crafted in a way that you can use with almost all sort of web project. This is Tailwind CSS template built using [TailGrids](https://tailgrids.com/) components.
+Final production build for the Prime Advertere website, prepared for GitHub and Netlify deployment.
 
-### This template crafted using 🥞 [TailGrids](https://tailgrids.com/) UI components
+## Project Structure
 
-### [🚀 View Demo](https://play-tailwind.tailgrids.com/)
+- `index.html` - main landing page
+- `blog-details.html` and `blog-post-*.html` - blog pages
+- `order/`, `premium/`, `thank-you/` - pricing and conversion flow pages
+- `assets/` - site images, styles, scripts, logos, and media
+- `server.js` - local Express/Nodemailer form handler
 
-### [⬇️ Download Now](https://links.tailgrids.com/play-download)
+## Local Development
 
-[![play-tailwind](https://cdn.tailgrids.com/play-tailwind.jpg)](https://play-tailwind.tailgrids.com/)
+Install dependencies:
 
-## 📃 License
+```bash
+npm install
+```
 
-Play is an open-source template, you can use it with your personal or commercial projects without any attribution or backlink.
+Start the local server:
 
-## 💙 Support
+```bash
+npm start
+```
 
-You can always support this project by [Starring🌟 This Repository](https://github.com/tailgrids/play-tailwind)
-and sharing with friends. Also open an issue if you find bug or feel free to contribute by pull requests after fixing any issue or adding more values.
+## Deployment
 
-### Update Logs: 2.0 - Nov 2023
-- Design refresh
-- New marketing section
-- Dark mode support
-- Code and performance optimization
-- Updated dependencies
+This build is intended to be connected to Netlify for live deployment.
