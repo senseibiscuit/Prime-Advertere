@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium Application - Prime Advertere</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-dark: #020617;
+      --bg-mid: #0f172a;
+      --bg-light: #f8fafc;
+      --panel-dark: rgba(15, 23, 42, 0.86);
+      --panel-light: #ffffff;
+      --border-dark: rgba(255, 255, 255, 0.12);
+      --border-light: rgba(15, 23, 42, 0.08);
+      --text-dark: #ffffff;
+      --text-soft: #cbd5e1;
+      --text-muted: #64748b;
+      --text-strong: #0f172a;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --ring: rgba(2, 132, 199, 0.14);
+      --shadow-dark: 0 32px 90px rgba(2, 6, 23, 0.45);
+      --shadow-light: 0 28px 72px rgba(15, 23, 42, 0.14);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-mid) 44%, #dbeafe 44%, var(--bg-light) 100%);
+      color: var(--text-dark);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page-shell {
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page-shell::before,
+    .page-shell::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(26px);
+      opacity: 0.74;
+      pointer-events: none;
+    }
+
+    .page-shell::before {
+      width: 420px;
+      height: 420px;
+      top: -120px;
+      right: -110px;
+      background: rgba(14, 165, 233, 0.24);
+    }
+
+    .page-shell::after {
+      width: 380px;
+      height: 380px;
+      left: -130px;
+      bottom: 120px;
+      background: rgba(37, 99, 235, 0.2);
+    }
+
+    .site-header {
+      position: relative;
+      z-index: 1;
+      border-bottom: 1px solid var(--border-dark);
+    }
+
+    .header-inner,
+    .content-grid {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0;
+    }
+
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .brand-mark img {
+      display: block;
+      width: auto;
+      height: 52px;
+    }
+
+    .secondary-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .secondary-link:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.34);
+    }
+
+    .content-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 28px;
+      padding: 56px 0 88px;
+      grid-template-columns: 1fr 1.12fr;
+      align-items: start;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(125, 211, 252, 0.28);
+      background: rgba(14, 165, 233, 0.12);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #e0f2fe;
+    }
+
+    .hero-copy {
+      margin-top: 22px;
+    }
+
+    .hero-copy p.kicker {
+      margin: 0 0 14px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #bae6fd;
+    }
+
+    .hero-copy h1 {
+      margin: 0;
+      max-width: 620px;
+      font-size: clamp(38px, 5vw, 56px);
+      line-height: 1.07;
+    }
+
+    .hero-copy p.summary {
+      margin: 18px 0 0;
+      max-width: 620px;
+      font-size: 19px;
+      line-height: 1.8;
+      color: var(--text-soft);
+    }
+
+    .glass-card,
+    .light-card,
+    .form-card {
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+
+    .glass-card {
+      margin-top: 28px;
+      border: 1px solid var(--border-dark);
+      background: var(--panel-dark);
+      box-shadow: var(--shadow-dark);
+      backdrop-filter: blur(16px);
+    }
+
+    .glass-card-inner {
+      padding: 30px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .card-label {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(226, 232, 240, 0.8);
+    }
+
+    .card-title {
+      margin: 10px 0 0;
+      font-size: 30px;
+    }
+
+    .card-price {
+      text-align: right;
+    }
+
+    .card-price strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 38px;
+      line-height: 1;
+    }
+
+    .info-columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 28px;
+      padding-top: 26px;
+    }
+
+    .list-title {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(226, 232, 240, 0.8);
+    }
+
+    .info-list {
+      list-style: none;
+      margin: 18px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #f8fafc;
+    }
+
+    .info-list li {
+      position: relative;
+      padding-left: 20px;
+    }
+
+    .info-list li::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #38bdf8;
+      position: absolute;
+      left: 0;
+      top: 10px;
+    }
+
+    .light-card {
+      margin-top: 24px;
+      border: 1px solid var(--border-light);
+      background: var(--panel-light);
+      box-shadow: var(--shadow-light);
+      color: var(--text-strong);
+      padding: 26px 28px;
+    }
+
+    .light-card p:first-child {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .light-card ol {
+      margin: 14px 0 0;
+      padding-left: 18px;
+      color: #475569;
+      line-height: 1.9;
+    }
+
+    .form-card {
+      border: 1px solid var(--border-light);
+      background: var(--panel-light);
+      color: var(--text-strong);
+      box-shadow: var(--shadow-light);
+    }
+
+    .form-card-inner {
+      padding: 32px;
+    }
+
+    .form-intro {
+      padding-bottom: 26px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .form-intro p:first-child {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .form-intro h2 {
+      margin: 14px 0 0;
+      font-size: 38px;
+      line-height: 1.1;
+      color: var(--text-strong);
+    }
+
+    .form-intro p:last-child {
+      margin: 14px 0 0;
+      font-size: 16px;
+      line-height: 1.8;
+      color: #475569;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 28px;
+    }
+
+    .form-grid .full {
+      grid-column: 1 / -1;
+    }
+
+    label span {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      border-radius: var(--radius-md);
+      padding: 15px 16px;
+      font: inherit;
+      color: #0f172a;
+      background: #ffffff;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    textarea {
+      min-height: 132px;
+    }
+
+    .notice {
+      margin-top: 24px;
+      border-radius: var(--radius-lg);
+      background: #f8fafc;
+      padding: 18px 20px;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #475569;
+    }
+
+    .form-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .button-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 28px;
+      cursor: pointer;
+      transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .button-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .button-primary:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status-message {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #64748b;
+    }
+
+    .status-message.error {
+      color: #dc2626;
+    }
+
+    @media (max-width: 980px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .header-inner,
+      .content-grid {
+        width: min(1120px, calc(100% - 24px));
+      }
+
+      .header-inner {
+        gap: 16px;
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .info-columns,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-actions,
+      .card-header {
+        flex-direction: column;
+        align-items: start;
+      }
+
+      .card-price {
+        text-align: left;
+      }
+
+      .form-card-inner,
+      .glass-card-inner,
+      .light-card {
+        padding: 24px;
+      }
+
+      .form-intro h2 {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="header-inner">
+        <a href="/" class="brand-mark" aria-label="Prime Advertere home">
+          <img src="../assets/images/prime/logo.png?v=2" alt="Prime Advertere" />
+        </a>
+        <a href="/#pricing" class="secondary-link">Back to Pricing</a>
+      </div>
+    </header>
+
+    <main class="content-grid">
+      <section>
+        <div class="eyebrow">Application-only premium growth plan</div>
+
+        <div class="hero-copy">
+          <p class="kicker">Prime Advertere</p>
+          <h1>Premium is for businesses ready to scale intentionally.</h1>
+          <p class="summary">
+            Share where your business is now, what growth looks like, and what support you need so we can see if Premium is the right fit.
+          </p>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-inner">
+            <div class="card-header">
+              <div>
+                <p class="card-label">Package</p>
+                <h2 class="card-title">Premium</h2>
+              </div>
+              <div class="card-price">
+                <p class="card-label">Monthly</p>
+                <strong>$1000</strong>
+              </div>
+            </div>
+
+            <div class="info-columns">
+              <div>
+                <p class="list-title">What you get</p>
+                <ul class="info-list">
+                  <li>Everything in Basic</li>
+                  <li>Full SEO package</li>
+                  <li>Google Business optimization</li>
+                  <li>Monthly ranking growth strategy</li>
+                  <li>Competitor tracking</li>
+                  <li>Highest priority support</li>
+                </ul>
+              </div>
+              <div>
+                <p class="list-title">Best fit for</p>
+                <ul class="info-list">
+                  <li>Businesses that want stronger local visibility</li>
+                  <li>Teams ready for ongoing monthly growth work</li>
+                  <li>Companies that need SEO, branding, and strategy working together</li>
+                  <li>Owners who want a proactive partner instead of reactive support</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="light-card">
+          <p>What happens after you apply</p>
+          <ol>
+            <li>Our team reviews your application details and current goals.</li>
+            <li>If Premium looks like a fit, we reach out to confirm next steps and timeline.</li>
+            <li>We map out the first growth priorities before onboarding begins.</li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="form-card-inner">
+          <div class="form-intro">
+            <p>Premium application</p>
+            <h2>Tell us where you want to grow</h2>
+            <p>
+              The goal here is to understand your business well enough to make a smart recommendation, not push you into the wrong package.
+            </p>
+          </div>
+
+          <form id="premiumForm">
+            <div class="form-grid">
+              <label>
+                <span>First name</span>
+                <input placeholder="John" name="firstName" required />
+              </label>
+              <label>
+                <span>Last name</span>
+                <input placeholder="Doe" name="lastName" required />
+              </label>
+              <label class="full">
+                <span>Business name</span>
+                <input placeholder="Your company name" name="company" required />
+              </label>
+              <label>
+                <span>Email</span>
+                <input placeholder="name@business.com" name="email" type="email" required />
+              </label>
+              <label>
+                <span>Phone</span>
+                <input placeholder="(555) 555-5555" name="phone" required />
+              </label>
+              <label>
+                <span>Website</span>
+                <input placeholder="https://yourwebsite.com" name="website" />
+              </label>
+              <label>
+                <span>Primary service area</span>
+                <input placeholder="City, region, or market" name="serviceArea" />
+              </label>
+              <label class="full">
+                <span>What are your biggest growth goals right now?</span>
+                <textarea placeholder="Share what you want to improve over the next 3 to 6 months." name="goals" required></textarea>
+              </label>
+              <label class="full">
+                <span>What is your current marketing strategy?</span>
+                <textarea placeholder="Tell us what you are doing now for website, ads, SEO, content, or outreach." name="currentStrategy"></textarea>
+              </label>
+              <label class="full">
+                <span>Anything else we should know?</span>
+                <textarea placeholder="Add timelines, frustrations, team size, or anything helpful for review." name="notes"></textarea>
+              </label>
+            </div>
+
+            <div class="notice">
+              Premium applications are reviewed manually so we can make sure the strategy and monthly scope make sense before moving forward.
+            </div>
+
+            <div class="form-actions">
+              <button id="scheduleCall" type="submit" class="button-primary">Submit Premium Application</button>
+              <p id="premiumStatus" class="status-message" aria-live="polite"></p>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    async function submitPremiumForm(event) {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const status = document.getElementById("premiumStatus");
+      const button = document.getElementById("scheduleCall");
+      const payload = Object.fromEntries(new FormData(form).entries());
+
+      button.disabled = true;
+      status.textContent = "Sending your application...";
+      status.className = "status-message";
+
+      try {
+        const response = await fetch("/api/premium-application", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.ok) {
+          throw new Error(result.message || "We could not submit your application right now.");
+        }
+
+        const redirectUrl = new URL("/thank-you", window.location.origin);
+        redirectUrl.searchParams.set("flow", "premium");
+        redirectUrl.searchParams.set("name", payload.firstName);
+        window.location.href = redirectUrl.toString();
+      } catch (error) {
+        status.textContent = error.message || "We could not submit your application right now.";
+        status.className = "status-message error";
+        button.disabled = false;
+      }
+    }
+
+    document.getElementById("premiumForm").addEventListener("submit", submitPremiumForm);
+  </script>
+</body>
+</html>
