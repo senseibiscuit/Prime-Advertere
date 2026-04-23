@@ -4,16 +4,16 @@
   // ======= Sticky
   window.onscroll = function () {
     const ud_header = document.querySelector(".ud-header");
-    const sticky = ud_header.offsetTop;
+    const sticky = ud_header ? ud_header.offsetTop : 0;
     const logo = document.querySelectorAll(".header-logo");
 
-    if (window.pageYOffset > sticky) {
+    if (ud_header && window.pageYOffset > sticky) {
       ud_header.classList.add("sticky");
-    } else {
+    } else if (ud_header) {
       ud_header.classList.remove("sticky");
     }
 
-    if(logo.length) {
+    if (ud_header && logo.length) {
       // === logo change
       if (ud_header.classList.contains("sticky")) {
         document.querySelector(".header-logo").src =
@@ -24,8 +24,8 @@
       }
     }
 
-    if (document.documentElement.classList.contains("dark")) {
-      if(logo.length) {
+    if (ud_header && document.documentElement.classList.contains("dark")) {
+      if (logo.length) {
         // === logo change
         if (ud_header.classList.contains("sticky")) {
           document.querySelector(".header-logo").src =
@@ -36,13 +36,15 @@
 
     // show or hide the back-top-top button
     const backToTop = document.querySelector(".back-to-top");
-    if (
-      document.body.scrollTop > 50 ||
-      document.documentElement.scrollTop > 50
-    ) {
-      backToTop.style.display = "flex";
-    } else {
-      backToTop.style.display = "none";
+    if (backToTop) {
+      if (
+        document.body.scrollTop > 50 ||
+        document.documentElement.scrollTop > 50
+      ) {
+        backToTop.style.display = "flex";
+      } else {
+        backToTop.style.display = "none";
+      }
     }
   };
 
@@ -50,18 +52,24 @@
   let navbarToggler = document.querySelector("#navbarToggler");
   const navbarCollapse = document.querySelector("#navbarCollapse");
 
-  navbarToggler.addEventListener("click", () => {
-    navbarToggler.classList.toggle("navbarTogglerActive");
-    navbarCollapse.classList.toggle("hidden");
-  });
+  if (navbarToggler && navbarCollapse) {
+    navbarToggler.addEventListener("click", () => {
+      navbarToggler.classList.toggle("navbarTogglerActive");
+      navbarCollapse.classList.toggle("hidden");
+    });
+  }
 
   //===== close navbar-collapse when a  clicked
   document
     .querySelectorAll("#navbarCollapse ul li:not(.submenu-item) a")
     .forEach((e) =>
       e.addEventListener("click", () => {
-        navbarToggler.classList.remove("navbarTogglerActive");
-        navbarCollapse.classList.add("hidden");
+        if (navbarToggler) {
+          navbarToggler.classList.remove("navbarTogglerActive");
+        }
+        if (navbarCollapse) {
+          navbarCollapse.classList.add("hidden");
+        }
       })
     );
 
@@ -114,9 +122,12 @@
     return (-c / 2) * (t * (t - 2) - 1) + b;
   };
 
-  document.querySelector(".back-to-top").onclick = () => {
-    scrollTo(document.documentElement);
-  };
+  const backToTopButton = document.querySelector(".back-to-top");
+  if (backToTopButton) {
+    backToTopButton.onclick = () => {
+      scrollTo(document.documentElement);
+    };
+  }
 
     /* ========  themeSwitcher start ========= */
 
@@ -125,7 +136,7 @@
 
   // Theme Vars
   const userTheme = localStorage.getItem('theme');
-  const systemTheme = window.matchMedia('(prefers-color0scheme: dark)').matches;
+  const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
   // Initial Theme Check
   const themeCheck = () => {
@@ -148,9 +159,11 @@
   };
 
   // call theme switch on clicking buttons
-  themeSwitcher.addEventListener('click', () => {
-    themeSwitch();
-  });
+  if (themeSwitcher) {
+    themeSwitcher.addEventListener("click", () => {
+      themeSwitch();
+    });
+  }
 
   // invoke theme check on initial load
   themeCheck();
