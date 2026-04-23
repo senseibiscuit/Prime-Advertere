@@ -14,6 +14,18 @@
     />
     <link rel="stylesheet" href="assets/css/animate.css" />
     <link rel="stylesheet" href="assets/css/tailwind.css" />
+    <style>
+      @media (max-width: 1023px) {
+        .mobile-theme-toggle {
+          position: absolute;
+          right: 9rem;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 10;
+          margin-right: 0 !important;
+        }
+      }
+    </style>
 
     <!-- ==== WOW JS ==== -->
     <script src="assets/js/wow.min.js"></script>
@@ -86,10 +98,10 @@
                 </ul>
               </nav>
             </div>
-            <div class="flex items-center justify-end pr-16 lg:pr-0">
+            <div class="flex items-center justify-end lg:pr-0">
               <label
                 for="themeSwitcher"
-                class="inline-flex cursor-pointer items-center mr-6"
+                class="mobile-theme-toggle inline-flex cursor-pointer items-center mr-6"
                 aria-label="themeSwitcher"
                 name="themeSwitcher"
               >
