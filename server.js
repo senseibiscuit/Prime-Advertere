@@ -25,6 +25,9 @@ function createTransporter() {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    // Enable verbose logs in dev
+    logger: (process.env.MAIL_DEBUG || "false") === "true",
+    debug: (process.env.MAIL_DEBUG || "false") === "true",
   });
 }
 
@@ -73,6 +76,24 @@ app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+// Lightweight diagnostic endpoint to test Gmail SMTP locally
+app.post("/api/mail-test", async (req, res) => {
+  const to = toSafeText(req.body?.to || process.env.EMAIL_TO || req.body?.email);
+  if (!to) {
+    return res.status(400).json({ ok: false, message: "Recipient email is required for test" });
+  }
+  const subject = req.body?.subject || "Prime Advertere SMTP test";
+  const text = req.body?.text || "This is a test email from Prime Advertere";
+  const html = req.body?.html || `<p>${text}</p>`;
+  try {
+    await sendMail(to, subject, text, html);
+    res.json({ ok: true, message: "Test email sent" });
+  } catch (err) {
+    console.error("Test email failed:", err);
+    res.status(500).json({ ok: false, message: "Test email failed" });
+  }
+});
+
 app.post("/api/book-demo", async (req, res) => {
   const missingConfig = getMissingConfig();
   if (missingConfig.length) {
@@ -91,6 +112,7 @@ app.post("/api/book-demo", async (req, res) => {
   const email = toSafeText(req.body.email);
   const phone = toSafeText(req.body.phone);
   const message = toSafeText(req.body.message);
+  console.log("booking-demo payload:", { fullName, email, phone, messagePreview: (message || '').slice(0, 60) });
 
   if (!fullName || !email || !phone || !message) {
     return res.status(400).json({
@@ -125,6 +147,7 @@ app.post("/api/book-demo", async (req, res) => {
 
     // Send acknowledgement to the user
     try {
+      console.log("Sending acknowledgement to:", email);
       const ackSubject = `We’ve received your message, ${fullName}`;
       const ackText = `Hi ${fullName},\n\nThank you for reaching out to Prime Advertere. We’ve received your message and will get back to you shortly.\n\nMessage:\n${message}\n\nBest regards,\nPrime Advertere`;
       const ackHtml = `<p>Hi ${escapeHtml(fullName)},</p><p>Thank you for reaching out to Prime Advertere. We’ve received your message and will get back to you shortly.</p><p><strong>Your message:</strong><br/>${formatHtmlParagraph(message)}</p><p>Best regards,<br/>Prime Advertere</p>`;
