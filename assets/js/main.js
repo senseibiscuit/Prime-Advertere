@@ -219,8 +219,15 @@
           },
           body: JSON.stringify(payload),
         });
-
-        const result = await response.json();
+        // Robust JSON parsing: some endpoints may return HTML on errors
+        let result;
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          result = await response.json();
+        } else {
+          const text = await response.text();
+          throw new Error(text || errorFallback);
+        }
 
         if (!response.ok || !result.ok) {
           throw new Error(result.message || errorFallback);
@@ -248,7 +255,7 @@
     formSelector: "#contactForm",
     statusSelector: "#contactFormStatus",
     submitSelector: 'button[type="submit"]',
-    endpoint: "/.netlify/functions/book-demo",
+    endpoint: (function(){ var h = (typeof window !== 'undefined' ? window.location.hostname : ''); return (h.indexOf('netlify.app') !== -1) ? '/.netlify/functions/book-demo' : '/api/book-demo'; })(),
     loadingMessage: "Sending your message...",
     loadingButtonText: "Sending...",
     successFallback: "Thanks. Your message was sent successfully.",

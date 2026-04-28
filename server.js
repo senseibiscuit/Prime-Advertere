@@ -62,6 +62,7 @@ async function sendMail(to, subject, text, html) {
 
 async function sendWebsiteEmail({ replyTo, subject, textLines, htmlLines }) {
   const transporter = createTransporter();
+  console.log("[SMTP] Sending internal booking email to", process.env.EMAIL_TO);
   await transporter.sendMail({
     from: `"Prime Advertere Website" <${process.env.SMTP_USER}>`,
     to: process.env.EMAIL_TO,
@@ -74,6 +75,20 @@ async function sendWebsiteEmail({ replyTo, subject, textLines, htmlLines }) {
 
 app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
+});
+
+// Diagnostics: log incoming booking-demo requests and provide a safe 404 fallback
+app.use((req, res, next) => {
+  console.log('[warn] 404 for', req.method, req.originalUrl);
+  if (req.originalUrl.startsWith('/api/book-demo') || req.originalUrl.startsWith('/api/')) {
+    // if API route not matched, still return JSON 404
+    return res.status(404).json({ ok: false, message: 'Not Found' });
+  }
+  next();
+});
+// Global 404 for non-API routes
+app.use((req, res) => {
+  res.status(404).json({ ok: false, message: 'Not Found' });
 });
 
 // Lightweight diagnostic endpoint to test Gmail SMTP locally
@@ -95,6 +110,7 @@ app.post("/api/mail-test", async (req, res) => {
 });
 
 app.post("/api/book-demo", async (req, res) => {
+  console.log('[BOOK-DEMO] payload:', req.body);
   const missingConfig = getMissingConfig();
   if (missingConfig.length) {
     return res.status(500).json({
