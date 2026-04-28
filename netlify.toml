@@ -1,6 +1,5 @@
 [build]
-  command = "npm ci && npm run build"
-  publish = "MainPABuild"
+  publish = "."
 
 [functions]
   directory = "netlify/functions"
