@@ -45,6 +45,18 @@ function formatHtmlParagraph(value) {
   return escapeHtml(value).replace(/\n/g, "<br />");
 }
 
+// Simple mail sender helper (to keep ack separate from internal mail)
+async function sendMail(to, subject, text, html) {
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: `"Prime Advertere" <${process.env.SMTP_USER}>`,
+    to,
+    subject,
+    text,
+    html,
+  });
+}
+
 async function sendWebsiteEmail({ replyTo, subject, textLines, htmlLines }) {
   const transporter = createTransporter();
   await transporter.sendMail({
@@ -70,7 +82,12 @@ app.post("/api/book-demo", async (req, res) => {
     });
   }
 
-  const fullName = toSafeText(req.body.fullName);
+  let fullName = toSafeText(req.body.fullName);
+  if (!fullName) {
+    const f = toSafeText(req.body.firstName);
+    const l = toSafeText(req.body.lastName);
+    fullName = [f, l].filter(Boolean).join(" ");
+  }
   const email = toSafeText(req.body.email);
   const phone = toSafeText(req.body.phone);
   const message = toSafeText(req.body.message);
@@ -105,6 +122,16 @@ app.post("/api/book-demo", async (req, res) => {
         `<p>${formatHtmlParagraph(message)}</p>`,
       ],
     });
+
+    // Send acknowledgement to the user
+    try {
+      const ackSubject = `We’ve received your message, ${fullName}`;
+      const ackText = `Hi ${fullName},\n\nThank you for reaching out to Prime Advertere. We’ve received your message and will get back to you shortly.\n\nMessage:\n${message}\n\nBest regards,\nPrime Advertere`;
+      const ackHtml = `<p>Hi ${escapeHtml(fullName)},</p><p>Thank you for reaching out to Prime Advertere. We’ve received your message and will get back to you shortly.</p><p><strong>Your message:</strong><br/>${formatHtmlParagraph(message)}</p><p>Best regards,<br/>Prime Advertere</p>`;
+      await sendMail(email, ackSubject, ackText, ackHtml);
+    } catch (err) {
+      console.error("Acknowledgement email failed:", err);
+    }
 
     return res.json({
       ok: true,
