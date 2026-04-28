@@ -248,7 +248,7 @@
     formSelector: "#contactForm",
     statusSelector: "#contactFormStatus",
     submitSelector: 'button[type="submit"]',
-    endpoint: "/api/book-demo",
+    endpoint: "/.netlify/functions/book-demo",
     loadingMessage: "Sending your message...",
     loadingButtonText: "Sending...",
     successFallback: "Thanks. Your message was sent successfully.",
