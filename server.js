@@ -77,20 +77,6 @@ app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Diagnostics: log incoming booking-demo requests and provide a safe 404 fallback
-app.use((req, res, next) => {
-  console.log('[warn] 404 for', req.method, req.originalUrl);
-  if (req.originalUrl.startsWith('/api/book-demo') || req.originalUrl.startsWith('/api/')) {
-    // if API route not matched, still return JSON 404
-    return res.status(404).json({ ok: false, message: 'Not Found' });
-  }
-  next();
-});
-// Global 404 for non-API routes
-app.use((req, res) => {
-  res.status(404).json({ ok: false, message: 'Not Found' });
-});
-
 // Lightweight diagnostic endpoint to test Gmail SMTP locally
 app.post("/api/mail-test", async (req, res) => {
   const to = toSafeText(req.body?.to || process.env.EMAIL_TO || req.body?.email);
@@ -110,6 +96,7 @@ app.post("/api/mail-test", async (req, res) => {
 });
 
 app.post("/api/book-demo", async (req, res) => {
+  console.log('[BOOK-DEMO] request received', { fullName: req.body?.fullName, email: req.body?.email, hasMessage: !!req.body?.message });
   console.log('[BOOK-DEMO] payload:', req.body);
   const missingConfig = getMissingConfig();
   if (missingConfig.length) {
@@ -412,6 +399,26 @@ app.post("/api/premium-application", async (req, res) => {
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
+});
+
+// Keep 404 handling after all routes so valid API endpoints can execute.
+app.use((req, res, next) => {
+  console.log("[warn] 404 for", req.method, req.originalUrl);
+  if (req.originalUrl.startsWith("/api/")) {
+    return res.status(404).json({ ok: false, message: "Not Found" });
+  }
+  next();
+});
+
+app.use((req, res) => {
+  res.status(404).json({ ok: false, message: "Not Found" });
+});
+
+app.use((err, req, res, _next) => {
+  console.error("Unhandled error in request:", err);
+  if (!res.headersSent) {
+    res.status(500).json({ ok: false, message: "Internal server error" });
+  }
 });
 
 app.listen(port, () => {

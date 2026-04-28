@@ -174,6 +174,7 @@
     statusSelector,
     submitSelector,
     endpoint,
+    endpoints,
     loadingMessage,
     loadingButtonText,
     successFallback,
@@ -200,6 +201,11 @@
 
       const formData = new FormData(form);
       const payload = Object.fromEntries(formData.entries());
+      const endpointList = Array.isArray(endpoints)
+        ? endpoints
+        : endpoint
+          ? [endpoint]
+          : [];
 
       if (submitButton) {
         submitButton.disabled = true;
@@ -212,29 +218,43 @@
       updateStatus(loadingMessage);
 
       try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-        // Robust JSON parsing: some endpoints may return HTML on errors
-        let result;
-        const contentType = response.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          result = await response.json();
-        } else {
-          const text = await response.text();
-          throw new Error(text || errorFallback);
+        if (!endpointList.length) {
+          throw new Error(errorFallback);
         }
 
-        if (!response.ok || !result.ok) {
-          throw new Error(result.message || errorFallback);
-        }
+        let lastErrorMessage = errorFallback;
 
-        form.reset();
-        updateStatus(result.message || successFallback);
+        for (let index = 0; index < endpointList.length; index += 1) {
+          const currentEndpoint = endpointList[index];
+          const response = await fetch(currentEndpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+          let result;
+          const contentType = response.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            result = await response.json();
+          } else {
+            const text = await response.text();
+            result = { ok: false, message: text || errorFallback };
+          }
+
+          if (response.ok && result.ok) {
+            form.reset();
+            updateStatus(result.message || successFallback);
+            return;
+          }
+
+          lastErrorMessage = result.message || errorFallback;
+
+          if (response.status !== 404 || index === endpointList.length - 1) {
+            throw new Error(lastErrorMessage);
+          }
+        }
       } catch (error) {
         updateStatus(error.message || errorFallback, true);
       } finally {
@@ -255,7 +275,7 @@
     formSelector: "#contactForm",
     statusSelector: "#contactFormStatus",
     submitSelector: 'button[type="submit"]',
-    endpoint: (function(){ var h = (typeof window !== 'undefined' ? window.location.hostname : ''); return (h.indexOf('netlify.app') !== -1) ? '/.netlify/functions/book-demo' : '/api/book-demo'; })(),
+    endpoints: ["/.netlify/functions/book-demo", "/api/book-demo"],
     loadingMessage: "Sending your message...",
     loadingButtonText: "Sending...",
     successFallback: "Thanks. Your message was sent successfully.",
