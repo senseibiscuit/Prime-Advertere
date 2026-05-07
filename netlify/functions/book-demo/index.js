@@ -1,5 +1,23 @@
 const nodemailer = require('nodemailer');
 
+function firstEnv(...keys) {
+  for (const key of keys) {
+    const value = String(process.env[key] || '').trim();
+    if (value) {
+      return value;
+    }
+  }
+  return '';
+}
+
+function getMailConfig() {
+  const smtpUser = firstEnv('SMTP_USER', 'SMTP_USERNAME');
+  const smtpPass = firstEnv('SMTP_PASS', 'SMTP_PASSWORD');
+  const emailTo = firstEnv('BOOKING_EMAIL_TO', 'EMAIL_TO', 'CONTACT_EMAIL_TO');
+  const fromEmail = firstEnv('SMTP_FROM', 'SMTP_USER', 'SMTP_USERNAME');
+  return { smtpUser, smtpPass, emailTo, fromEmail };
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -14,18 +32,19 @@ function formatHtmlParagraph(value) {
 }
 
 async function sendMail(to, subject, text, html) {
+  const config = getMailConfig();
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: Number(process.env.SMTP_PORT || 465),
     secure: (process.env.SMTP_SECURE || 'true') === 'true',
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: config.smtpUser,
+      pass: config.smtpPass,
     },
   });
 
   await transporter.sendMail({
-    from: `"Prime Advertere Website" <${process.env.SMTP_USER}>`,
+    from: `"Prime Advertere Website" <${config.fromEmail}>`,
     to,
     subject,
     text,
@@ -59,9 +78,12 @@ exports.handler = async (event) => {
   const email = (body.email || '').trim();
   const phone = (body.phone || '').trim();
   const message = (body.message || '').trim();
-  const missingConfig = ['SMTP_USER', 'SMTP_PASS', 'EMAIL_TO'].filter(
-    (key) => !process.env[key]
-  );
+  const config = getMailConfig();
+  const missingConfig = [
+    !config.smtpUser ? 'SMTP_USER' : '',
+    !config.smtpPass ? 'SMTP_PASS' : '',
+    !config.emailTo ? 'BOOKING_EMAIL_TO' : '',
+  ].filter(Boolean);
 
   if (missingConfig.length) {
     return {
@@ -85,7 +107,7 @@ exports.handler = async (event) => {
 
   try {
     await sendMail(
-      process.env.EMAIL_TO,
+      config.emailTo,
       `New Booking from ${fullName}`,
       `New booking from ${fullName}\nEmail: ${email}\nPhone: ${phone}\nMessage:\n${message}`,
       `<h2>New Booking</h2><p><strong>Name:</strong> ${escapeHtml(fullName)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Phone:</strong> ${escapeHtml(phone)}</p><p><strong>Message:</strong><br/>${formatHtmlParagraph(message)}</p>`

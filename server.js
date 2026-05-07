@@ -10,20 +10,42 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
+function firstEnv(...keys) {
+  for (const key of keys) {
+    const value = String(process.env[key] || "").trim();
+    if (value) {
+      return value;
+    }
+  }
+  return "";
+}
+
+function getMailConfig() {
+  const smtpUser = firstEnv("SMTP_USER", "SMTP_USERNAME");
+  const smtpPass = firstEnv("SMTP_PASS", "SMTP_PASSWORD");
+  const emailTo = firstEnv("BOOKING_EMAIL_TO", "EMAIL_TO", "CONTACT_EMAIL_TO");
+  const fromEmail = firstEnv("SMTP_FROM", "SMTP_USER", "SMTP_USERNAME");
+  return { smtpUser, smtpPass, emailTo, fromEmail };
+}
+
 function getMissingConfig() {
-  return ["SMTP_USER", "SMTP_PASS", "EMAIL_TO"].filter(
-    (key) => !process.env[key]
-  );
+  const config = getMailConfig();
+  return [
+    !config.smtpUser ? "SMTP_USER" : "",
+    !config.smtpPass ? "SMTP_PASS" : "",
+    !config.emailTo ? "BOOKING_EMAIL_TO" : "",
+  ].filter(Boolean);
 }
 
 function createTransporter() {
+  const config = getMailConfig();
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: Number(process.env.SMTP_PORT || 465),
     secure: String(process.env.SMTP_SECURE || "true") === "true",
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: config.smtpUser,
+      pass: config.smtpPass,
     },
     // Enable verbose logs in dev
     logger: (process.env.MAIL_DEBUG || "false") === "true",
@@ -51,8 +73,9 @@ function formatHtmlParagraph(value) {
 // Simple mail sender helper (to keep ack separate from internal mail)
 async function sendMail(to, subject, text, html) {
   const transporter = createTransporter();
+  const config = getMailConfig();
   await transporter.sendMail({
-    from: `"Prime Advertere" <${process.env.SMTP_USER}>`,
+    from: `"Prime Advertere" <${config.fromEmail}>`,
     to,
     subject,
     text,
@@ -62,10 +85,11 @@ async function sendMail(to, subject, text, html) {
 
 async function sendWebsiteEmail({ replyTo, subject, textLines, htmlLines }) {
   const transporter = createTransporter();
-  console.log("[SMTP] Sending internal booking email to", process.env.EMAIL_TO);
+  const config = getMailConfig();
+  console.log("[SMTP] Sending internal booking email to", config.emailTo);
   await transporter.sendMail({
-    from: `"Prime Advertere Website" <${process.env.SMTP_USER}>`,
-    to: process.env.EMAIL_TO,
+    from: `"Prime Advertere Website" <${config.fromEmail}>`,
+    to: config.emailTo,
     replyTo,
     subject,
     text: textLines.join("\n"),
@@ -79,7 +103,8 @@ app.get("/", (_req, res) => {
 
 // Lightweight diagnostic endpoint to test Gmail SMTP locally
 app.post("/api/mail-test", async (req, res) => {
-  const to = toSafeText(req.body?.to || process.env.EMAIL_TO || req.body?.email);
+  const config = getMailConfig();
+  const to = toSafeText(req.body?.to || config.emailTo || req.body?.email);
   if (!to) {
     return res.status(400).json({ ok: false, message: "Recipient email is required for test" });
   }
