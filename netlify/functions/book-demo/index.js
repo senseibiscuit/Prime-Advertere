@@ -1,5 +1,9 @@
 const nodemailer = require('nodemailer');
 
+const JSON_HEADERS = {
+  'Content-Type': 'application/json; charset=utf-8',
+};
+
 function firstEnv(...keys) {
   for (const key of keys) {
     const value = String(process.env[key] || '').trim();
@@ -87,6 +91,7 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: JSON_HEADERS,
       body: JSON.stringify({ ok: false, message: 'Method not allowed' }),
     };
   }
@@ -97,6 +102,7 @@ exports.handler = async (event) => {
   } catch (_error) {
     return {
       statusCode: 400,
+      headers: JSON_HEADERS,
       body: JSON.stringify({ ok: false, message: 'Invalid JSON' }),
     };
   }
@@ -119,6 +125,7 @@ exports.handler = async (event) => {
   if (missingConfig.length) {
     return {
       statusCode: 500,
+      headers: JSON_HEADERS,
       body: JSON.stringify({
         ok: false,
         message: `Missing email configuration: ${missingConfig.join(', ')}`,
@@ -129,6 +136,7 @@ exports.handler = async (event) => {
   if (!fullName || !email || !phone || !message) {
     return {
       statusCode: 400,
+      headers: JSON_HEADERS,
       body: JSON.stringify({
         ok: false,
         message: 'Please fill out all required fields.',
@@ -152,6 +160,7 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
+      headers: JSON_HEADERS,
       body: JSON.stringify({
         ok: true,
         message: "Thanks, your message has been sent. We'll be in touch soon.",
@@ -167,6 +176,7 @@ exports.handler = async (event) => {
     });
     return {
       statusCode: 500,
+      headers: JSON_HEADERS,
       body: JSON.stringify({
         ok: false,
         message: 'Email send failed.',
