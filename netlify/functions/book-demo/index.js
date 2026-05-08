@@ -31,6 +31,37 @@ function formatHtmlParagraph(value) {
   return escapeHtml(value).replace(/\n/g, '<br />');
 }
 
+function classifyMailError(error) {
+  const code = String(error?.code || '').trim().toUpperCase();
+  const responseCode = Number(error?.responseCode || 0);
+  const message = String(error?.message || '').toLowerCase();
+
+  if (
+    code === 'EAUTH' ||
+    responseCode === 535 ||
+    message.includes('invalid login') ||
+    message.includes('authentication')
+  ) {
+    return 'SMTP authentication failed. Recheck SMTP_USER and SMTP_PASS.';
+  }
+
+  if (
+    code === 'ESOCKET' ||
+    code === 'ECONNECTION' ||
+    code === 'ETIMEDOUT' ||
+    message.includes('timeout') ||
+    message.includes('connect')
+  ) {
+    return 'SMTP connection failed. Recheck SMTP_HOST, SMTP_PORT, and SMTP_SECURE.';
+  }
+
+  if (responseCode >= 500 && responseCode < 600) {
+    return 'The mail server rejected the message. Recheck the sender mailbox and destination address.';
+  }
+
+  return 'Email send failed. Check the Netlify function logs for the SMTP error.';
+}
+
 async function sendMail(to, subject, text, html) {
   const config = getMailConfig();
   const transporter = nodemailer.createTransport({
@@ -123,14 +154,24 @@ exports.handler = async (event) => {
       statusCode: 200,
       body: JSON.stringify({
         ok: true,
-        message: 'Thanks. Your message was sent successfully.',
+        message: "Thanks, your message has been sent. We'll be in touch soon.",
       }),
     };
   } catch (error) {
-    console.error('Booking book-demo failed:', error);
+    console.error('Booking book-demo failed:', {
+      code: error?.code || '',
+      command: error?.command || '',
+      responseCode: error?.responseCode || '',
+      response: error?.response || '',
+      message: error?.message || '',
+    });
     return {
       statusCode: 500,
-      body: JSON.stringify({ ok: false, message: 'Email send failed.' }),
+      body: JSON.stringify({
+        ok: false,
+        message: 'Email send failed.',
+        hint: classifyMailError(error),
+      }),
     };
   }
 };

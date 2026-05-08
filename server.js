@@ -186,7 +186,7 @@ app.post("/api/book-demo", async (req, res) => {
 
     return res.json({
       ok: true,
-      message: "Thanks. Your message was sent successfully.",
+      message: "Thanks, your message has been sent. We'll be in touch soon.",
     });
   } catch (error) {
     console.error("Email send failed:", error);

@@ -278,7 +278,7 @@
     endpoints: ["/.netlify/functions/book-demo", "/api/book-demo"],
     loadingMessage: "Sending your message...",
     loadingButtonText: "Sending...",
-    successFallback: "Thanks. Your message was sent successfully.",
+    successFallback: "Thanks, your message has been sent. We'll be in touch soon.",
     errorFallback: "Sorry, we could not send your message right now.",
   });
 
