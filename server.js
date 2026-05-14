@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs/promises");
 const express = require("express");
 const nodemailer = require("nodemailer");
 require("dotenv").config();
@@ -43,6 +44,10 @@ function createTransporter() {
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: Number(process.env.SMTP_PORT || 465),
     secure: String(process.env.SMTP_SECURE || "true") === "true",
+    family: Number(process.env.SMTP_FAMILY || 4),
+    connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT || 15000),
+    greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT || 10000),
+    socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT || 20000),
     auth: {
       user: config.smtpUser,
       pass: config.smtpPass,
@@ -68,6 +73,61 @@ function toSafeText(value) {
 
 function formatHtmlParagraph(value) {
   return escapeHtml(value).replace(/\n/g, "<br />");
+}
+
+async function relayBookDemo(payload) {
+  const relayUrl =
+    String(process.env.BOOK_DEMO_RELAY_URL || "").trim() ||
+    "https://primeadvertere.netlify.app/.netlify/functions/book-demo";
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    Number(process.env.BOOK_DEMO_RELAY_TIMEOUT || 15000)
+  );
+
+  try {
+    const response = await fetch(relayUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    const result = await response.json().catch(() => ({}));
+    return {
+      ok: response.ok && result?.ok !== false,
+      status: response.status,
+      result,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function persistLeadFallback(kind, payload, error) {
+  const dir = path.join(__dirname, "submissions", kind);
+  await fs.mkdir(dir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const file = path.join(dir, `${stamp}.json`);
+  await fs.writeFile(
+    file,
+    JSON.stringify(
+      {
+        savedAt: new Date().toISOString(),
+        kind,
+        payload,
+        error: error
+          ? {
+              message: error.message,
+              code: error.code || "",
+              command: error.command || "",
+            }
+          : null,
+      },
+      null,
+      2
+    )
+  );
+  return file;
 }
 
 // Simple mail sender helper (to keep ack separate from internal mail)
@@ -150,6 +210,21 @@ app.post("/api/book-demo", async (req, res) => {
   }
 
   try {
+    const relay = await relayBookDemo({ fullName, email, phone, message });
+    if (relay.ok) {
+      return res.status(relay.status || 200).json({
+        ok: true,
+        message:
+          relay.result?.message ||
+          "Thanks, your message has been sent. We'll be in touch soon.",
+      });
+    }
+    console.warn("[BOOK-DEMO] Relay failed, falling back to local SMTP:", relay);
+  } catch (relayError) {
+    console.warn("[BOOK-DEMO] Relay request failed, falling back to local SMTP:", relayError);
+  }
+
+  try {
     await sendWebsiteEmail({
       replyTo: `"${fullName}" <${email}>`,
       subject: `New Book Free Demo request from ${fullName}`,
@@ -190,10 +265,24 @@ app.post("/api/book-demo", async (req, res) => {
     });
   } catch (error) {
     console.error("Email send failed:", error);
-    return res.status(500).json({
-      ok: false,
-      message: "Sorry, we could not send your message right now.",
-    });
+    try {
+      const savedTo = await persistLeadFallback(
+        "book-demo",
+        { fullName, email, phone, message },
+        error
+      );
+      console.warn("[BOOK-DEMO] Email failed, submission saved locally at", savedTo);
+      return res.status(202).json({
+        ok: true,
+        message: "Thanks, your request has been received. We'll be in touch soon.",
+      });
+    } catch (persistError) {
+      console.error("[BOOK-DEMO] Failed to save fallback submission:", persistError);
+      return res.status(500).json({
+        ok: false,
+        message: "Sorry, we could not send your message right now.",
+      });
+    }
   }
 });
 

@@ -17,7 +17,7 @@ function firstEnv(...keys) {
 function getMailConfig() {
   const smtpUser = firstEnv('SMTP_USER', 'SMTP_USERNAME');
   const smtpPass = firstEnv('SMTP_PASS', 'SMTP_PASSWORD');
-  const emailTo = firstEnv('BOOKING_EMAIL_TO', 'EMAIL_TO', 'CONTACT_EMAIL_TO');
+  const emailTo = 'cobybaker16@gmail.com';
   const fromEmail = firstEnv('SMTP_FROM', 'SMTP_USER', 'SMTP_USERNAME');
   return { smtpUser, smtpPass, emailTo, fromEmail };
 }
