@@ -17,7 +17,7 @@ function firstEnv(...keys) {
 function getMailConfig() {
   const smtpUser = firstEnv('SMTP_USER', 'SMTP_USERNAME');
   const smtpPass = firstEnv('SMTP_PASS', 'SMTP_PASSWORD');
-  const emailTo = 'cobybaker16@gmail.com, lead@primeadvertere.com';
+  const emailTo = 'cobybaker16@gmail.com, lead@primeadvertere.com, start@primeadvertere.com';
   const fromEmail = firstEnv('SMTP_FROM', 'SMTP_USER', 'SMTP_USERNAME');
   return { smtpUser, smtpPass, emailTo, fromEmail };
 }
@@ -112,6 +112,9 @@ exports.handler = async (event) => {
   const fullName = (
     body.fullName || (firstName && lastName ? `${firstName} ${lastName}` : '')
   ).trim();
+  const leadType = (body.leadType || 'booking').trim().toLowerCase();
+  const businessName = (body.businessName || body.company || '').trim();
+  const plan = (body.plan || '').trim();
   const email = (body.email || '').trim();
   const phone = (body.phone || '').trim();
   const message = (body.message || '').trim();
@@ -144,17 +147,73 @@ exports.handler = async (event) => {
     };
   }
 
+  const subject =
+    leadType === 'order-intake'
+      ? `New ${plan || 'Plan'} request from ${businessName || fullName}`
+      : leadType === 'premium-application'
+        ? `New Premium application from ${businessName || fullName}`
+        : `New Booking from ${fullName}`;
+
+  const heading =
+    leadType === 'order-intake'
+      ? 'New plan request'
+      : leadType === 'premium-application'
+        ? 'New Premium application'
+        : 'New Booking';
+
+  const adminText =
+    `${heading}\n` +
+    `Name: ${fullName}\n` +
+    `Email: ${email}\n` +
+    `Phone: ${phone}\n` +
+    `${businessName ? `Business: ${businessName}\n` : ''}` +
+    `${plan ? `Plan: ${plan}\n` : ''}` +
+    `Message:\n${message}`;
+
+  const adminHtml =
+    `<h2>${escapeHtml(heading)}</h2>` +
+    `<p><strong>Name:</strong> ${escapeHtml(fullName)}</p>` +
+    `<p><strong>Email:</strong> ${escapeHtml(email)}</p>` +
+    `<p><strong>Phone:</strong> ${escapeHtml(phone)}</p>` +
+    (businessName ? `<p><strong>Business:</strong> ${escapeHtml(businessName)}</p>` : '') +
+    (plan ? `<p><strong>Plan:</strong> ${escapeHtml(plan)}</p>` : '') +
+    `<p><strong>Message:</strong><br/>${formatHtmlParagraph(message)}</p>`;
+
+  const successMessage =
+    leadType === 'order-intake'
+      ? "Thanks. Your plan request has been received and our team will follow up soon."
+      : leadType === 'premium-application'
+        ? "Thanks. Your Premium application has been received and our team will follow up soon."
+        : "Thanks, your message has been sent. We'll be in touch soon.";
+
+  const ackSubject =
+    leadType === 'order-intake'
+      ? `We've received your ${plan || 'plan'} request, ${fullName}`
+      : leadType === 'premium-application'
+        ? `We've received your Premium application, ${fullName}`
+        : `We've received your message, ${fullName}`;
+
+  const ackText =
+    leadType === 'order-intake'
+      ? `Hi ${fullName},\n\nThank you for reaching out to Prime Advertere. We've received your ${plan || 'plan'} request and will follow up shortly.\n\nBest regards,\nPrime Advertere`
+      : leadType === 'premium-application'
+        ? `Hi ${fullName},\n\nThank you for applying to Prime Advertere Premium. We've received your application and will follow up shortly.\n\nBest regards,\nPrime Advertere`
+        : `Hi ${fullName},\n\nThank you for reaching out to Prime Advertere. We've received your message and will get back to you shortly.\n\nMessage:\n${message}\n\nBest regards,\nPrime Advertere`;
+
+  const ackHtml =
+    leadType === 'order-intake'
+      ? `<p>Hi ${escapeHtml(fullName)},</p><p>Thank you for reaching out to Prime Advertere. We've received your ${escapeHtml(plan || 'plan')} request and will follow up shortly.</p><p>Best regards,<br/>Prime Advertere</p>`
+      : leadType === 'premium-application'
+        ? `<p>Hi ${escapeHtml(fullName)},</p><p>Thank you for applying to Prime Advertere Premium. We've received your application and will follow up shortly.</p><p>Best regards,<br/>Prime Advertere</p>`
+        : `<p>Hi ${escapeHtml(fullName)},</p><p>Thank you for reaching out to Prime Advertere. We've received your message and will get back to you shortly.</p><p><strong>Your message:</strong><br/>${formatHtmlParagraph(message)}</p><p>Best regards,<br/>Prime Advertere</p>`;
+
   try {
     await sendMail(
       config.emailTo,
-      `New Booking from ${fullName}`,
-      `New booking from ${fullName}\nEmail: ${email}\nPhone: ${phone}\nMessage:\n${message}`,
-      `<h2>New Booking</h2><p><strong>Name:</strong> ${escapeHtml(fullName)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Phone:</strong> ${escapeHtml(phone)}</p><p><strong>Message:</strong><br/>${formatHtmlParagraph(message)}</p>`
+      subject,
+      adminText,
+      adminHtml
     );
-
-    const ackSubject = `We've received your message, ${fullName}`;
-    const ackText = `Hi ${fullName},\n\nThank you for reaching out to Prime Advertere. We've received your message and will get back to you shortly.\n\nMessage:\n${message}\n\nBest regards,\nPrime Advertere`;
-    const ackHtml = `<p>Hi ${escapeHtml(fullName)},</p><p>Thank you for reaching out to Prime Advertere. We've received your message and will get back to you shortly.</p><p><strong>Your message:</strong><br/>${formatHtmlParagraph(message)}</p><p>Best regards,<br/>Prime Advertere</p>`;
 
     await sendMail(email, ackSubject, ackText, ackHtml);
 
@@ -163,7 +222,7 @@ exports.handler = async (event) => {
       headers: JSON_HEADERS,
       body: JSON.stringify({
         ok: true,
-        message: "Thanks, your message has been sent. We'll be in touch soon.",
+        message: successMessage,
       }),
     };
   } catch (error) {

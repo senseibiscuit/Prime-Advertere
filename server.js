@@ -75,14 +75,15 @@ function formatHtmlParagraph(value) {
   return escapeHtml(value).replace(/\n/g, "<br />");
 }
 
-async function relayBookDemo(payload) {
+async function relayWebsiteLead(payload) {
   const relayUrl =
+    String(process.env.WEBSITE_LEAD_RELAY_URL || "").trim() ||
     String(process.env.BOOK_DEMO_RELAY_URL || "").trim() ||
     "https://primeadvertere.netlify.app/.netlify/functions/book-demo";
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
-    Number(process.env.BOOK_DEMO_RELAY_TIMEOUT || 15000)
+    Number(process.env.WEBSITE_LEAD_RELAY_TIMEOUT || process.env.BOOK_DEMO_RELAY_TIMEOUT || 15000)
   );
 
   try {
@@ -210,7 +211,13 @@ app.post("/api/book-demo", async (req, res) => {
   }
 
   try {
-    const relay = await relayBookDemo({ fullName, email, phone, message });
+    const relay = await relayWebsiteLead({
+      leadType: "booking",
+      fullName,
+      email,
+      phone,
+      message,
+    });
     if (relay.ok) {
       return res.status(relay.status || 200).json({
         ok: true,
@@ -378,6 +385,44 @@ app.post("/api/order-intake", async (req, res) => {
 
   const fullName = `${firstName} ${lastName}`.trim();
   const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+  const relayMessage = [
+    `Plan: ${planLabel}`,
+    `Name: ${fullName}`,
+    `Business: ${businessName}`,
+    `Email: ${email}`,
+    `Phone: ${phone}`,
+    `Website: ${website || "Not provided"}`,
+    `Business type: ${businessType || "Not provided"}`,
+    "",
+    "Goals:",
+    goals || "Not provided",
+    "",
+    "Notes:",
+    notes || "Not provided",
+  ].join("\n");
+
+  try {
+    const relay = await relayWebsiteLead({
+      leadType: "order-intake",
+      plan: planLabel,
+      fullName,
+      businessName,
+      email,
+      phone,
+      message: relayMessage,
+    });
+    if (relay.ok) {
+      return res.status(relay.status || 200).json({
+        ok: true,
+        message:
+          relay.result?.message ||
+          "Thanks. Your plan request was submitted successfully.",
+      });
+    }
+    console.warn("[ORDER-INTAKE] Relay failed, falling back to local SMTP:", relay);
+  } catch (relayError) {
+    console.warn("[ORDER-INTAKE] Relay request failed, falling back to local SMTP:", relayError);
+  }
 
   try {
     await sendWebsiteEmail({
@@ -422,10 +467,35 @@ app.post("/api/order-intake", async (req, res) => {
     });
   } catch (error) {
     console.error("Order intake send failed:", error);
-    return res.status(500).json({
-      ok: false,
-      message: "Sorry, we could not submit your request right now.",
-    });
+    try {
+      const savedTo = await persistLeadFallback(
+        "order-intake",
+        {
+          plan,
+          firstName,
+          lastName,
+          businessName,
+          email,
+          phone,
+          website,
+          businessType,
+          goals,
+          notes,
+        },
+        error
+      );
+      console.warn("[ORDER-INTAKE] Email failed, submission saved locally at", savedTo);
+      return res.status(202).json({
+        ok: true,
+        message: "Thanks. Your plan request has been received and our team will follow up soon.",
+      });
+    } catch (persistError) {
+      console.error("[ORDER-INTAKE] Failed to save fallback submission:", persistError);
+      return res.status(500).json({
+        ok: false,
+        message: "Sorry, we could not submit your request right now.",
+      });
+    }
   }
 });
 
@@ -457,6 +527,45 @@ app.post("/api/premium-application", async (req, res) => {
   }
 
   const fullName = `${firstName} ${lastName}`.trim();
+  const relayMessage = [
+    `Name: ${fullName}`,
+    `Business: ${company}`,
+    `Email: ${email}`,
+    `Phone: ${phone}`,
+    `Website: ${website || "Not provided"}`,
+    `Service area: ${serviceArea || "Not provided"}`,
+    "",
+    "Goals:",
+    goals,
+    "",
+    "Current strategy:",
+    currentStrategy || "Not provided",
+    "",
+    "Notes:",
+    notes || "Not provided",
+  ].join("\n");
+
+  try {
+    const relay = await relayWebsiteLead({
+      leadType: "premium-application",
+      fullName,
+      businessName: company,
+      email,
+      phone,
+      message: relayMessage,
+    });
+    if (relay.ok) {
+      return res.status(relay.status || 200).json({
+        ok: true,
+        message:
+          relay.result?.message ||
+          "Thanks. Your Premium application was submitted successfully.",
+      });
+    }
+    console.warn("[PREMIUM] Relay failed, falling back to local SMTP:", relay);
+  } catch (relayError) {
+    console.warn("[PREMIUM] Relay request failed, falling back to local SMTP:", relayError);
+  }
 
   try {
     await sendWebsiteEmail({
@@ -504,10 +613,35 @@ app.post("/api/premium-application", async (req, res) => {
     });
   } catch (error) {
     console.error("Premium application send failed:", error);
-    return res.status(500).json({
-      ok: false,
-      message: "Sorry, we could not submit your application right now.",
-    });
+    try {
+      const savedTo = await persistLeadFallback(
+        "premium-application",
+        {
+          firstName,
+          lastName,
+          company,
+          email,
+          phone,
+          website,
+          serviceArea,
+          goals,
+          currentStrategy,
+          notes,
+        },
+        error
+      );
+      console.warn("[PREMIUM] Email failed, submission saved locally at", savedTo);
+      return res.status(202).json({
+        ok: true,
+        message: "Thanks. Your Premium application has been received and our team will follow up soon.",
+      });
+    } catch (persistError) {
+      console.error("[PREMIUM] Failed to save fallback submission:", persistError);
+      return res.status(500).json({
+        ok: false,
+        message: "Sorry, we could not submit your application right now.",
+      });
+    }
   }
 });
 
